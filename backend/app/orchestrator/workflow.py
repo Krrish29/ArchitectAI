@@ -15,10 +15,10 @@ class Workflow:
 
         architecture = architecture_agent.generate(requirements)
 
-        project_plan = planner_agent.generate(requirements)
+        project_plan = planner_agent.generate(requirements, architecture)
 
         return {
-    "requirements": requirements.model_dump(),
-    "architecture": architecture,
-    "project_plan": project_plan
+            "requirements": requirements.model_dump(),
+            "architecture": architecture.model_dump(),
+            "project_plan": project_plan.model_dump(),
         }

@@ -68,15 +68,23 @@ Example:
 
         response = self.llm.generate(prompt)
 
-        print("\n========== RAW LLM RESPONSE ==========")
-        print(response)
-        print("======================================\n")
-
         data = extract_json(response)
 
-        data["features"] = self.normalize_list(
-            data.get("features", [])
+        print(f"[RequirementAgent] Project: " f"{data.get('project_name', 'Unknown')}")
+        print(
+            f"[RequirementAgent] Features Identified: "
+            f"{len(data.get('features', []))}"
         )
+        print(
+            f"[RequirementAgent] Functional Requirements: "
+            f"{len(data.get('functional_requirements', []))}"
+        )
+        print(
+            f"[RequirementAgent] Non Functional Requirements: "
+            f"{len(data.get('non_functional_requirements', []))}"
+        )
+
+        data["features"] = self.normalize_list(data.get("features", []))
 
         data["functional_requirements"] = self.normalize_list(
             data.get("functional_requirements", [])

@@ -1,15 +1,13 @@
 from fastapi import APIRouter
 from app.schemas.request_schema import IdeaRequest
-from app.orchestrator.workflow import Workflow
+from app.schemas.final_response import FinalResponse
+from app.agents.supervisor_agent import SupervisorAgent
 
-router = APIRouter(
-    prefix="/api",
-    tags=["ArchitectAI"]
-)
+router = APIRouter()
+
+supervisor = SupervisorAgent()
 
 
-@router.post("/generate")
-def generate(request: IdeaRequest):
-    workflow = Workflow()
-    result = workflow.execute(request.idea)
-    return result
+@router.post("/generate", response_model=FinalResponse)
+def generate(data: IdeaRequest):
+    return supervisor.execute(data.idea)
