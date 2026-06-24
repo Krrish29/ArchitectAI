@@ -44,7 +44,17 @@ Create an implementation roadmap.
 
 Break the project into logical phases.
 
-Return ONLY this JSON:
+Return ONLY valid JSON.
+
+Rules:
+1. Return JSON only.
+2. No markdown.
+3. No explanations.
+4. No comments.
+5. No trailing commas.
+6. Response must be parseable by Python json.loads().
+
+Return this exact schema:
 
 {{
   "phases": [
@@ -61,10 +71,27 @@ Do not return empty values.
 
         response = self.llm.generate(prompt)
 
-        data = extract_json(response)
+        print("===== RAW PLANNER RESPONSE =====")
+        print(response)
+
+        try:
+            data = extract_json(response)
+        except Exception as e:
+            print("===== PLANNER PARSE ERROR =====")
+            print(e)
+
+            print("===== RAW PLANNER RESPONSE =====")
+            print(response)
+
+            raise e
+
+        print("===== PARSED PLANNER DATA =====")
+        print(data)
 
         print(f"[PlannerAgent] Project: " f"{requirements.project_name}")
+
         print(f"[PlannerAgent] Architecture: " f"{architecture.architecture_type}")
+
         print(
             f"[PlannerAgent] Total Phases Generated: " f"{len(data.get('phases', []))}"
         )

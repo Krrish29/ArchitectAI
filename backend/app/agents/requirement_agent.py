@@ -68,7 +68,38 @@ Example:
 
         response = self.llm.generate(prompt)
 
+        print("===== RAW REQUIREMENT RESPONSE =====")
+        print(response)
+
         data = extract_json(response)
+
+        # Handle nested project objects returned by small models
+        if "project_name" not in data and len(data) == 1:
+
+            key = list(data.keys())[0]
+            nested = data[key]
+
+            if isinstance(nested, dict):
+                nested["project_name"] = key.replace("_", " ").title()
+                data = nested
+
+        # Safe defaults
+        data.setdefault(
+            "project_name",
+            idea.title(),
+        )
+        data.setdefault(
+            "features",
+            [],
+        )
+        data.setdefault(
+            "functional_requirements",
+            [],
+        )
+        data.setdefault(
+            "non_functional_requirements",
+            [],
+        )
 
         print(f"[RequirementAgent] Project: " f"{data.get('project_name', 'Unknown')}")
         print(
@@ -87,11 +118,17 @@ Example:
         data["features"] = self.normalize_list(data.get("features", []))
 
         data["functional_requirements"] = self.normalize_list(
-            data.get("functional_requirements", [])
+            data.get(
+                "functional_requirements",
+                [],
+            )
         )
 
         data["non_functional_requirements"] = self.normalize_list(
-            data.get("non_functional_requirements", [])
+            data.get(
+                "non_functional_requirements",
+                [],
+            )
         )
 
         return RequirementResponse(**data)
