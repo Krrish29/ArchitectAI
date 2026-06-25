@@ -7,14 +7,20 @@ function Dashboard() {
   const {
     messages,
     setMessages,
+
     loading,
     setLoading,
+
     blueprint,
     setBlueprint,
+
     timeline,
     setTimeline,
+
     projects,
     setProjects,
+
+    setSelectedProject,
   } = useBlueprint();
 
   const handleGenerate = async (idea) => {
@@ -50,7 +56,14 @@ function Dashboard() {
       };
 
       saveProject(project);
-      setProjects((prev) => [project, ...prev]);
+
+      setProjects((prev) => [
+        project,
+        ...prev,
+      ]);
+
+      // ✅ Make the newly created project the active one
+      setSelectedProject(project);
 
       // Build timeline dynamically
       const timelineState = {
@@ -59,13 +72,17 @@ function Dashboard() {
 
       if (data.selected_agents) {
         data.selected_agents.forEach((agent) => {
-          timelineState[agent] = "completed";
+          timelineState[agent] =
+            "completed";
         });
       }
 
       setTimeline(timelineState);
     } catch (error) {
-      console.error("Generation failed:", error);
+      console.error(
+        "Generation failed:",
+        error
+      );
 
       setMessages((prev) => [
         ...prev,

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { HiArrowUp } from "react-icons/hi2";
+import { ArrowUp, Plus } from "lucide-react";
 
 function PromptBox({
   onGenerate,
@@ -41,24 +41,51 @@ function PromptBox({
     <div className="w-full max-w-4xl mx-auto">
       <div
         className="
-          bg-[#2F2F2F]
           rounded-[28px]
           border
-          border-[#444]
-          px-5
-          py-4
+          border-[#303030]
+          bg-[#1E1E1E]
+          px-4
+          py-3
           flex
           items-end
-          gap-4
+          gap-3
+          transition-all
+          duration-200
+          focus-within:border-[#4A4A4A]
+          shadow-[0_0_40px_rgba(0,0,0,0.35)]
         "
       >
+        {/* Left Button */}
+        <button
+          className="
+            h-9
+            w-9
+            rounded-full
+            flex
+            items-center
+            justify-center
+            text-[#A1A1AA]
+            hover:bg-[#2B2B2B]
+            hover:text-white
+            transition-all
+            duration-150
+          "
+        >
+          <Plus
+            size={18}
+            strokeWidth={2}
+          />
+        </button>
+
+        {/* Prompt */}
         <textarea
           ref={textareaRef}
           rows={1}
           value={idea}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder="Message ArchitectAI..."
+          placeholder="Describe the software you want to build..."
           className="
             flex-1
             bg-transparent
@@ -66,12 +93,14 @@ function PromptBox({
             placeholder:text-[#8E8EA0]
             resize-none
             outline-none
-            text-[16px]
+            text-[15px]
+            leading-7
             max-h-48
             overflow-y-auto
           "
         />
 
+        {/* Send */}
         <button
           onClick={handleSubmit}
           disabled={!idea.trim() || loading}
@@ -84,12 +113,17 @@ function PromptBox({
             flex
             items-center
             justify-center
-            transition
+            transition-all
+            duration-150
+            hover:scale-105
             disabled:opacity-40
             disabled:cursor-not-allowed
           "
         >
-          <HiArrowUp size={20} />
+          <ArrowUp
+            size={18}
+            strokeWidth={2.5}
+          />
         </button>
       </div>
     </div>
