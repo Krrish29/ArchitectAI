@@ -1,7 +1,22 @@
+import logging
+
 from app.services.llm_service import LLMService
+from app.services.json_parser import extract_json
+from app.services.safe_llm import SafeLLM
+
 from app.schemas.requirement_schema import RequirementResponse
 from app.schemas.architecture_schema import ArchitectureResponse
-from app.services.json_parser import extract_json
+
+logger = logging.getLogger("architecture_agent")
+
+LIST_FIELDS = [
+    "frontend",
+    "backend",
+    "database",
+    "authentication",
+    "services",
+    "deployment",
+]
 
 
 class ArchitectureAgent:
@@ -9,13 +24,39 @@ class ArchitectureAgent:
     def __init__(self):
         self.llm = LLMService()
 
-    def generate(
-        self,
-        requirements: RequirementResponse,
-    ) -> ArchitectureResponse:
+    def _parse(self, response: str) -> dict:
+
+        print("===== RAW ARCHITECTURE RESPONSE =====")
+        print(response)
+
+        data = extract_json(response)
+
+        if not isinstance(data, dict):
+            logger.error(
+                "ArchitectureAgent: expected dict, got %s. Raw: %s",
+                type(data),
+                str(data)[:300],
+            )
+            return {}
+
+        data.setdefault("architecture_type", "Microservices")
+
+        for field in LIST_FIELDS:
+            data[field] = SafeLLM.ensure_string_list(data.get(field))
+
+        # additional_features is a list of {name, details} objects, not
+        # plain strings, so it does NOT go through ensure_string_list.
+        # The schema's own validator handles malformed entries; just make
+        # sure we pass through a list (not None) so Pydantic sees an
+        # empty default rather than erroring on a missing key.
+        data.setdefault("additional_features", data.get("additional_features", []))
+
+        return data
+
+    def generate(self, requirements: RequirementResponse) -> ArchitectureResponse:
 
         prompt = f"""
-You are an expert software architect.
+You are a Senior Software Architect.
 
 Project:
 {requirements.project_name}
@@ -29,67 +70,37 @@ Functional Requirements:
 Non Functional Requirements:
 {chr(10).join("- " + f for f in requirements.non_functional_requirements)}
 
-Choose:
-1. Architecture type
-2. Frontend technologies
-3. Backend technologies
-4. Database technologies
-5. Authentication mechanism
-6. Important services
-7. Deployment technologies
-
-Return ONLY this JSON:
+STRICT JSON ONLY. Every list below must contain real, specific values, not
+placeholders. "additional_features" must contain AT LEAST 3 items that map
+directly to the project's features above (e.g. if a feature is "Search
+Functionality", describe HOW it's architected).
 
 {{
-  "architecture_type": "string",
-  "frontend": ["string"],
-  "backend": ["string"],
-  "database": ["string"],
-  "authentication": ["string"],
-  "services": ["string"],
-  "deployment": ["string"]
+  "architecture_type": "Microservices",
+  "frontend": ["React"],
+  "backend": ["Node.js", "Express"],
+  "database": ["PostgreSQL"],
+  "authentication": ["JWT"],
+  "services": ["API Gateway", "Notification Service"],
+  "deployment": ["Docker", "AWS ECS"],
+  "additional_features": [
+    {{
+      "name": "Search Functionality with Autocomplete",
+      "details": "Uses Elasticsearch for indexing and real-time autocomplete suggestions"
+    }},
+    {{
+      "name": "Social Media Integration",
+      "details": "OAuth-based login via Google and Facebook using Passport.js"
+    }}
+  ]
 }}
-
-Every field must contain meaningful values.
-Never return empty strings or empty arrays.
 """
 
         response = self.llm.generate(prompt)
 
-        data = extract_json(response)
-
-        list_fields = [
-            "frontend",
-            "backend",
-            "database",
-            "authentication",
-            "services",
-            "deployment",
-        ]
-
-        for field in list_fields:
-            value = data.get(field, [])
-
-            if isinstance(value, str):
-                value = [value]
-
-            data[field] = value
-
-        print(f"[ArchitectureAgent] Project: " f"{requirements.project_name}")
-        print(
-            f"[ArchitectureAgent] Architecture Type: "
-            f"{data.get('architecture_type', 'Unknown')}"
-        )
-        print(
-            f"[ArchitectureAgent] Frontend Stack: "
-            f"{', '.join(data.get('frontend', []))}"
-        )
-        print(
-            f"[ArchitectureAgent] Backend Stack: "
-            f"{', '.join(data.get('backend', []))}"
-        )
-        print(
-            f"[ArchitectureAgent] Database: " f"{', '.join(data.get('database', []))}"
-        )
-
-        return ArchitectureResponse(**data)
+        try:
+            data = self._parse(response)
+            return ArchitectureResponse(**data)
+        except Exception as e:
+            logger.error("ArchitectureAgent: failed to build response: %s", e)
+            return ArchitectureResponse()
