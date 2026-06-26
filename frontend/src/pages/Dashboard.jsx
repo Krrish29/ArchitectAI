@@ -7,19 +7,14 @@ function Dashboard() {
   const {
     messages,
     setMessages,
-
     loading,
     setLoading,
-
     blueprint,
     setBlueprint,
-
     timeline,
     setTimeline,
-
     projects,
     setProjects,
-
     setSelectedProject,
   } = useBlueprint();
 
@@ -35,7 +30,6 @@ function Dashboard() {
     setLoading(true);
     setBlueprint(null);
 
-    // Initially only supervisor is running
     setTimeline({
       supervisor: "running",
     });
@@ -43,7 +37,13 @@ function Dashboard() {
     try {
       const data = await generateBlueprint(idea);
 
-      console.log("API RESPONSE:", data);
+      // 🔍 DEBUG — check browser console
+      console.log("=== FULL API RESPONSE ===", data);
+      console.log("requirements:", data?.requirements);
+      console.log("architecture:", data?.architecture);
+      console.log("database:", data?.database);
+      console.log("api:", data?.api);
+      console.log("plan:", data?.plan);
 
       setBlueprint(data);
 
@@ -57,39 +57,29 @@ function Dashboard() {
 
       saveProject(project);
 
-      setProjects((prev) => [
-        project,
-        ...prev,
-      ]);
+      setProjects((prev) => [project, ...prev]);
 
-      // ✅ Make the newly created project the active one
       setSelectedProject(project);
 
-      // Build timeline dynamically
       const timelineState = {
         supervisor: "completed",
       };
 
       if (data.selected_agents) {
         data.selected_agents.forEach((agent) => {
-          timelineState[agent] =
-            "completed";
+          timelineState[agent] = "completed";
         });
       }
 
       setTimeline(timelineState);
     } catch (error) {
-      console.error(
-        "Generation failed:",
-        error
-      );
+      console.error("Generation failed:", error);
 
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content:
-            "Something went wrong while generating the blueprint.",
+          content: "Something went wrong while generating the blueprint.",
         },
       ]);
 

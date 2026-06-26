@@ -1,18 +1,19 @@
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: "http://localhost:8000",
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
+const API_BASE = "http://localhost:8000";
 
 export const generateBlueprint = async (idea) => {
-  const response = await api.post("/generate", {
-    idea,
-  });
+  try {
+    const response = await axios.post(
+      `${API_BASE}/generate`,
+      {
+        idea: idea,
+      }
+    );
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    console.error("API Error:", error.response?.data || error.message);
+    throw error;
+  }
 };
-
-export default api;

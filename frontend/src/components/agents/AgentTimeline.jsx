@@ -1,95 +1,139 @@
+import {
+  Bot,
+  Boxes,
+  Database,
+  Network,
+  ClipboardList,
+  CalendarCheck,
+  LoaderCircle,
+  Check,
+  Circle,
+  CircleAlert,
+} from "lucide-react";
+
 function AgentTimeline({ timeline }) {
   if (!timeline || Object.keys(timeline).length === 0) {
     return null;
   }
 
   const agentMap = {
-    requirement: "📋 Requirement Agent",
-    architecture: "🏗 Architecture Agent",
-    database: "🗄 Database Agent",
-    api: "🔌 API Agent",
-    planner: "🗺 Planner Agent",
+    requirement: {
+      name: "Requirement Agent",
+      icon: ClipboardList,
+    },
+    architecture: {
+      name: "Architecture Agent",
+      icon: Boxes,
+    },
+    database: {
+      name: "Database Agent",
+      icon: Database,
+    },
+    api: {
+      name: "API Agent",
+      icon: Network,
+    },
+    planner: {
+      name: "Planner Agent",
+      icon: CalendarCheck,
+    },
   };
 
   const agents = [
     {
-      name: "🧠 Supervisor Agent",
+      name: "Supervisor Agent",
+      icon: Bot,
       status: timeline.supervisor,
     },
 
     ...Object.entries(timeline)
       .filter(
-        ([key, status]) =>
-          key !== "supervisor" &&
-          status !== undefined
+        ([key]) => key !== "supervisor"
       )
       .map(([key, status]) => ({
-        name: agentMap[key] || `🤖 ${key} Agent`,
+        name:
+          agentMap[key]?.name ??
+          `${key} Agent`,
+        icon:
+          agentMap[key]?.icon ??
+          Bot,
         status,
       })),
   ];
 
-  const getStatus = (status) => {
+  const Status = ({ status }) => {
     switch (status) {
       case "running":
         return (
-          <div className="flex items-center gap-2 text-yellow-400">
-            <div className="flex gap-1">
-              <span className="h-2 w-2 rounded-full bg-yellow-400 animate-bounce"></span>
-              <span
-                className="h-2 w-2 rounded-full bg-yellow-400 animate-bounce"
-                style={{ animationDelay: "0.15s" }}
-              ></span>
-              <span
-                className="h-2 w-2 rounded-full bg-yellow-400 animate-bounce"
-                style={{ animationDelay: "0.3s" }}
-              ></span>
-            </div>
+          <div className="flex items-center gap-2 text-blue-400">
+            <LoaderCircle
+              size={16}
+              className="animate-spin"
+            />
 
-            <span>Thinking...</span>
+            <span className="text-sm">
+              Running...
+            </span>
           </div>
         );
 
       case "completed":
         return (
-          <span className="text-green-400">
-            ✓ Completed
-          </span>
+          <div className="flex items-center gap-2 text-green-400">
+            <Check size={16} />
+
+            <span className="text-sm">
+              Completed
+            </span>
+          </div>
         );
 
       case "failed":
         return (
-          <span className="text-red-400">
-            ✕ Failed
-          </span>
+          <div className="flex items-center gap-2 text-red-400">
+            <CircleAlert size={16} />
+
+            <span className="text-sm">
+              Failed
+            </span>
+          </div>
         );
 
       default:
         return (
-          <span className="text-[#8E8EA0]">
-            Waiting...
-          </span>
+          <div className="flex items-center gap-2 text-[#8E8EA0]">
+            <Circle size={12} />
+
+            <span className="text-sm">
+              Waiting
+            </span>
+          </div>
         );
     }
   };
 
   return (
     <div className="max-w-4xl mt-8">
-      {/* Assistant Header */}
+      {/* Header */}
+
       <div className="flex items-center gap-3 mb-8">
         <div
           className="
             h-10
             w-10
             rounded-full
-            bg-[#303030]
+            bg-[#2A2A2A]
+            border
+            border-[#333]
             flex
             items-center
             justify-center
-            text-lg
           "
         >
-          🏗
+          <Bot
+            size={18}
+            className="text-white"
+          />
         </div>
 
         <div>
@@ -98,35 +142,51 @@ function AgentTimeline({ timeline }) {
           </h2>
 
           <p className="text-[#8E8EA0] text-sm">
-            Analyzing your idea and generating a software blueprint...
+            Building your software architecture...
           </p>
         </div>
       </div>
 
-      {/* Agent Timeline */}
-      <div className="space-y-3">
-        {agents.map((agent) => (
-          <div
-            key={agent.name}
-            className="
-              flex
-              items-center
-              justify-between
-              rounded-xl
-              px-4
-              py-4
-              bg-[#2A2A2A]
-              border
-              border-[#3A3A3A]
-            "
-          >
-            <span className="text-white">
-              {agent.name}
-            </span>
+      {/* Timeline */}
 
-            {getStatus(agent.status)}
-          </div>
-        ))}
+      <div className="space-y-3">
+        {agents.map((agent) => {
+          const Icon = agent.icon;
+
+          return (
+            <div
+              key={agent.name}
+              className="
+                flex
+                items-center
+                justify-between
+                rounded-xl
+                px-4
+                py-4
+                bg-[#222222]
+                border
+                border-[#303030]
+                hover:border-[#404040]
+                transition-all
+              "
+            >
+              <div className="flex items-center gap-3">
+                <Icon
+                  size={18}
+                  className="text-white"
+                />
+
+                <span className="text-white">
+                  {agent.name}
+                </span>
+              </div>
+
+              <Status
+                status={agent.status}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
