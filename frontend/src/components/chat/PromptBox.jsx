@@ -1,12 +1,20 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowUp, Plus } from "lucide-react";
+import useBlueprint from "../../hooks/useBlueprint";
 
 function PromptBox({
   onGenerate,
   loading = false,
 }) {
+  const { resetChat } = useBlueprint();
   const [idea, setIdea] = useState("");
   const textareaRef = useRef(null);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, []);
 
   const handleSubmit = () => {
     if (!idea.trim() || loading) return;
@@ -17,6 +25,7 @@ function PromptBox({
 
     if (textareaRef.current) {
       textareaRef.current.style.height = "24px";
+      textareaRef.current.focus();
     }
   };
 
@@ -58,6 +67,14 @@ function PromptBox({
       >
         {/* Left Button */}
         <button
+          onClick={() => {
+            resetChat();
+            setIdea("");
+
+            if (textareaRef.current) {
+              textareaRef.current.focus();
+            }
+          }}
           className="
             h-9
             w-9

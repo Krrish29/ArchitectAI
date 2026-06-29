@@ -44,7 +44,7 @@ function ChatWindow({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, timeline, blueprint]);
 
-  if (messages.length === 0) {
+  if (messages.length === 0 && !blueprint) {
     return (
       <div className="h-full flex items-center justify-center px-8">
         <div className="max-w-2xl text-center">

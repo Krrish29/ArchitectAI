@@ -1,4 +1,7 @@
-import { generateBlueprint } from "../services/api";
+import {
+  generateBlueprint,
+  generateBlueprintStream,
+} from "../services/api";
 import { saveProject } from "../services/projectStorage";
 import Workspace from "../components/layout/Workspace";
 import useBlueprint from "../hooks/useBlueprint";
@@ -18,6 +21,44 @@ function Dashboard() {
     setSelectedProject,
   } = useBlueprint();
 
+  const buildInitialTimeline = (executionPlan = []) => {
+    const visibleAgents = Array.isArray(executionPlan)
+      ? executionPlan.filter(Boolean)
+      : [];
+
+    return {
+      supervisor: "pending",
+      ...Object.fromEntries(visibleAgents.map((agent) => [agent, "pending"])),
+    };
+  };
+
+  const buildTimelineFromEvents = (events, executionPlan = []) => {
+    const initialTimeline = buildInitialTimeline(executionPlan);
+
+    if (!Array.isArray(events)) {
+      return initialTimeline;
+    }
+
+    return events.reduce((timelineState, event) => {
+      if (event?.type === "agent" && event.agent) {
+        const shouldDisplay =
+          event.agent === "supervisor" ||
+          (Array.isArray(executionPlan) && executionPlan.includes(event.agent));
+
+        if (!shouldDisplay) {
+          return timelineState;
+        }
+
+        return {
+          ...timelineState,
+          [event.agent]: event.status,
+        };
+      }
+
+      return timelineState;
+    }, initialTimeline);
+  };
+
   const handleGenerate = async (idea) => {
     setMessages((prev) => [
       ...prev,
@@ -29,66 +70,60 @@ function Dashboard() {
 
     setLoading(true);
     setBlueprint(null);
+    setTimeline(buildInitialTimeline());
 
-    setTimeline({
-      supervisor: "running",
-    });
+    const source = generateBlueprintStream(
+      idea,
+      (event) => {
+        setTimeline((prev) => ({
+          ...prev,
+          [event.agent]: event.status,
+        }));
+      },
+      (payload) => {
+        const result = payload?.result || null;
+        const timelineState = buildTimelineFromEvents(
+          payload?.events || [],
+          result?.execution_plan || []
+        );
 
-    try {
-      const data = await generateBlueprint(idea);
+        setBlueprint(result);
 
-      // 🔍 DEBUG — check browser console
-      console.log("=== FULL API RESPONSE ===", data);
-      console.log("requirements:", data?.requirements);
-      console.log("architecture:", data?.architecture);
-      console.log("database:", data?.database);
-      console.log("api:", data?.api);
-      console.log("plan:", data?.plan);
+        const project = {
+          id: Date.now(),
+          title: idea,
+          idea,
+          blueprint: result,
+          events: payload?.events || [],
+          createdAt: new Date().toISOString(),
+        };
 
-      setBlueprint(data);
+        saveProject(project);
 
-      const project = {
-        id: Date.now(),
-        title: idea,
-        idea,
-        blueprint: data,
-        createdAt: new Date().toISOString(),
-      };
+        setProjects((prev) => [project, ...prev]);
+        setSelectedProject(project);
+        setTimeline(timelineState);
+        setLoading(false);
+      },
+      (message) => {
+        console.error("Generation failed:", message);
 
-      saveProject(project);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "Something went wrong while generating the blueprint.",
+          },
+        ]);
 
-      setProjects((prev) => [project, ...prev]);
-
-      setSelectedProject(project);
-
-      const timelineState = {
-        supervisor: "completed",
-      };
-
-      if (data.selected_agents) {
-        data.selected_agents.forEach((agent) => {
-          timelineState[agent] = "completed";
-        });
+        setLoading(false);
       }
+    );
 
-      setTimeline(timelineState);
-    } catch (error) {
-      console.error("Generation failed:", error);
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Something went wrong while generating the blueprint.",
-        },
-      ]);
-
-      setTimeline({
-        supervisor: "failed",
-      });
-    } finally {
+    source.onerror = () => {
+      source.close();
       setLoading(false);
-    }
+    };
   };
 
   return (

@@ -13,6 +13,8 @@ class FinalResponse(BaseModel):
 
     selected_agents: List[str] = []
 
+    execution_plan: List[str] = []
+
     reasoning: Dict[str, str] = {}
 
     requirements: Optional[RequirementResponse] = None

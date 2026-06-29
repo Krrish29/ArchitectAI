@@ -74,6 +74,83 @@ class SupervisorAgent:
     # --------------------------------------------------
     # VALIDATE + NORMALISE supervisor dict
     # --------------------------------------------------
+    def _apply_explicit_intent_rules(self, idea: str, agents: list[str]) -> list[str]:
+        """Enforce the supervisor's intent-classification contract for explicit requests."""
+        if not isinstance(idea, str):
+            return agents
+
+        text = idea.lower()
+
+        if any(
+            phrase in text
+            for phrase in [
+                "complete software project",
+                "full software blueprint",
+                "full blueprint",
+                "complete application",
+                "full application",
+                "complete swiggy application",
+                "build a complete",
+            ]
+        ):
+            return ["architecture", "database", "api", "planner"]
+
+        explicit_architecture = any(
+            phrase in text
+            for phrase in [
+                "software architecture",
+                "architecture design",
+                "architecture document",
+                "architecture",
+            ]
+        )
+        explicit_database = any(
+            phrase in text for phrase in ["database", "schema", "db"]
+        )
+        explicit_api = any(
+            phrase in text for phrase in ["rest api", "apis", "api", "endpoints"]
+        )
+        explicit_planner = any(
+            phrase in text
+            for phrase in [
+                "implementation roadmap",
+                "roadmap",
+                "timeline",
+                "implementation plan",
+                "plan",
+            ]
+        )
+
+        if (
+            explicit_architecture
+            and explicit_database
+            and not explicit_api
+            and not explicit_planner
+        ):
+            return ["architecture", "database"]
+
+        if explicit_architecture and not any(
+            [explicit_database, explicit_api, explicit_planner]
+        ):
+            return ["architecture"]
+
+        if explicit_planner and not any(
+            [explicit_architecture, explicit_database, explicit_api]
+        ):
+            return ["planner"]
+
+        if explicit_database and not any(
+            [explicit_architecture, explicit_api, explicit_planner]
+        ):
+            return ["database"]
+
+        if explicit_api and not any(
+            [explicit_architecture, explicit_database, explicit_planner]
+        ):
+            return ["api"]
+
+        return agents
+
     def _normalise(self, data: dict) -> dict:
         """
         Ensures selected_agents is a non-empty list of valid agent names.
@@ -119,7 +196,15 @@ class SupervisorAgent:
     # --------------------------------------------------
     def decide(self, idea: str) -> dict:
 
-        prompt = f"""You are an AI Engineering Manager deciding which agents to run.
+        prompt = f"""You are an intent classifier for an AI software architect workflow.
+
+YOUR ONLY JOB is to identify which deliverables the user explicitly requested.
+Do NOT infer additional deliverables.
+Do NOT expand dependencies.
+Do NOT think about downstream agents.
+Do NOT think about execution order.
+Do NOT select agents because they might be useful.
+Do NOT select extra agents.
 
 AVAILABLE AGENTS:
 - architecture
@@ -131,11 +216,36 @@ AVAILABLE AGENTS:
 
 PROJECT IDEA: "{idea}"
 
+CLASSIFICATION RULES:
+- If the user asks for a database, return ["database"]
+- If the user asks for REST APIs, return ["api"]
+- If the user asks for software architecture, architecture design, or architecture document, return ["architecture"]
+- If the user asks for an implementation roadmap, timeline, or plan, return ["planner"]
+- If the user asks for architecture and database, return ["architecture", "database"]
+- A request for architecture or roadmap does not imply the other deliverables; do not add database, api, or planner unless the user explicitly asked for them
+- If the user asks for exactly one deliverable, return exactly one agent and nothing else
+- IMPORTANT: "Generate software architecture for Swiggy" must return ["architecture"] only, not ["architecture", "database", "api", "planner"]
+- IMPORTANT: "Generate implementation roadmap for Swiggy" must return ["planner"] only, not ["architecture", "database", "api", "planner"]
+- Only return the full four-agent set when the user clearly asks for a complete software project, full blueprint, or complete application
+- Do not treat architecture or roadmap as a request for the entire application
+- Do not infer that a database, API, or planner is needed just because the project might eventually need them
+- Only if the user clearly asks for a complete software project, full blueprint, or complete application, return ["architecture", "database", "api", "planner"]
+- Do not select agents for anything the user did not explicitly request
+
+EXAMPLES:
+- User: "Generate database for Swiggy" -> {{"selected_agents": ["database"]}}
+- User: "Generate REST APIs" -> {{"selected_agents": ["api"]}}
+- User: "Generate software architecture" -> {{"selected_agents": ["architecture"]}}
+- User: "Generate implementation roadmap" -> {{"selected_agents": ["planner"]}}
+- User: "Generate architecture and database" -> {{"selected_agents": ["architecture", "database"]}}
+- User: "Build a complete Swiggy application" -> {{"selected_agents": ["architecture", "database", "api", "planner"]}}
+
 CRITICAL RULES:
 - Return ONLY a JSON object
 - No markdown, no backticks, no explanation
 - Output must start with {{ and end with }}
 - selected_agents must include at least one agent
+- selected_agents must contain only the explicitly requested deliverables
 
 REQUIRED FORMAT:
 {{
@@ -147,6 +257,10 @@ REQUIRED FORMAT:
 }}"""
 
         result = self._run_supervisor(prompt, label=idea, flow="decide")
+        result["selected_agents"] = self._apply_explicit_intent_rules(
+            idea,
+            result.get("selected_agents", []),
+        )
         self._print_summary(idea, result)
         return result
 
@@ -155,7 +269,12 @@ REQUIRED FORMAT:
     # --------------------------------------------------
     def analyze_update(self, context: BlueprintUpdateContext) -> dict:
 
-        prompt = f"""You are an AI Software Architect deciding which parts to regenerate.
+        prompt = f"""You are an intent classifier for blueprint updates.
+
+YOUR ONLY JOB is to identify which deliverables the user explicitly wants to regenerate.
+Do NOT infer additional deliverables.
+Do NOT add extra agents that were not requested.
+Do NOT expand dependencies.
 
 AVAILABLE AGENTS:
 - architecture
@@ -166,6 +285,14 @@ AVAILABLE AGENTS:
 (Note: requirements are always regenerated separately and do not need to be selected.)
 
 USER INSTRUCTION: "{context.instruction}"
+
+CLASSIFICATION RULES:
+- If the user requests a database change, return ["database"]
+- If the user requests API changes, return ["api"]
+- If the user requests architecture changes, return ["architecture"]
+- If the user requests a roadmap or plan update, return ["planner"]
+- If the user requests multiple explicit deliverables, return each one
+- Only select all agents when the user clearly asks for a full blueprint or complete project refresh
 
 CRITICAL RULES:
 - Return ONLY a JSON object

@@ -14,10 +14,12 @@ function Sidebar() {
 
     setBlueprint,
     setSelectedProject,
+    setNewChat,
 
     setTimeline,
     setMessages,
 
+    resetChat,
     removeProject,
     updateProjectTitle,
     toggleProjectPin,
@@ -52,23 +54,64 @@ function Sidebar() {
       (project) => !project.pinned
     );
 
+  const buildInitialTimeline = (executionPlan = []) => {
+    const visibleAgents = Array.isArray(executionPlan)
+      ? executionPlan.filter(Boolean)
+      : [];
+
+    return {
+      supervisor: "pending",
+      ...Object.fromEntries(visibleAgents.map((agent) => [agent, "pending"])),
+    };
+  };
+
+  const buildTimelineFromEvents = (events, executionPlan = []) => {
+    const initialTimeline = buildInitialTimeline(executionPlan);
+
+    if (!Array.isArray(events)) {
+      return initialTimeline;
+    }
+
+    return events.reduce((timelineState, event) => {
+      if (event?.type === "agent" && event.agent) {
+        const shouldDisplay =
+          event.agent === "supervisor" ||
+          (Array.isArray(executionPlan) && executionPlan.includes(event.agent));
+
+        if (!shouldDisplay) {
+          return timelineState;
+        }
+
+        return {
+          ...timelineState,
+          [event.agent]: event.status,
+        };
+      }
+
+      return timelineState;
+    }, initialTimeline);
+  };
+
   const handleProjectClick = (
     project
   ) => {
     setSelectedProject(project);
+    setNewChat(false);
 
     setBlueprint(project.blueprint);
 
-    const newTimeline = {
-      supervisor: "completed",
-    };
-
-    project.blueprint?.selected_agents?.forEach(
-      (agent) => {
-        newTimeline[agent] =
-          "completed";
-      }
+    const newTimeline = buildTimelineFromEvents(
+      project.events,
+      project.blueprint?.execution_plan || []
     );
+
+    if (!project.events?.length) {
+      Object.keys(newTimeline).forEach((key) => {
+        if (key !== "supervisor") {
+          newTimeline[key] = "completed";
+        }
+      });
+    }
 
     setTimeline(newTimeline);
 
@@ -81,20 +124,21 @@ function Sidebar() {
   };
 
   const handleNewProject = () => {
+    resetChat();
     setSelectedProject(null);
-
+    setNewChat(true);
     setBlueprint(null);
-
+    setMessages([]);
     setTimeline({
       supervisor: "pending",
-      requirement: "pending",
-      architecture: "pending",
-      database: "pending",
-      api: "pending",
-      planner: "pending",
     });
 
-    setMessages([]);
+    setTimeout(() => {
+      const promptBox = document.querySelector("textarea[placeholder='Describe the software you want to build...']");
+      if (promptBox) {
+        promptBox.focus();
+      }
+    }, 0);
   };
 
   const openDeleteModal = (
@@ -285,7 +329,7 @@ return (
             transition-all
           "
         >
-          + New Blueprint
+          + New Chat
         </button>
       </div>
 

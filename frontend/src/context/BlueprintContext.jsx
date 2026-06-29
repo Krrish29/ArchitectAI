@@ -58,11 +58,6 @@ export const BlueprintProvider = ({
   const [timeline, setTimeline] =
     useState({
       supervisor: "pending",
-      requirement: "pending",
-      architecture: "pending",
-      database: "pending",
-      api: "pending",
-      planner: "pending",
     });
 
   // ------------------------
@@ -76,10 +71,23 @@ export const BlueprintProvider = ({
     selectedProject,
     setSelectedProject,
   ] = useState(null);
+  const [newChat, setNewChat] = useState(true);
 
   useEffect(() => {
     setProjects(getProjects());
   }, []);
+
+  const resetChat = () => {
+    setSelectedProject(null);
+    setNewChat(true);
+    setBlueprint(null);
+    setMessages([]);
+    setTimeline({
+      supervisor: "pending",
+    });
+    setLoading(false);
+    setCurrentAgent(null);
+  };
 
   // ------------------------
   // Remove Project
@@ -102,11 +110,6 @@ export const BlueprintProvider = ({
 
       setTimeline({
         supervisor: "pending",
-        requirement: "pending",
-        architecture: "pending",
-        database: "pending",
-        api: "pending",
-        planner: "pending",
       });
     }
   };
@@ -226,8 +229,11 @@ export const BlueprintProvider = ({
 
         selectedProject,
         setSelectedProject,
+        newChat,
+        setNewChat,
 
         // Actions
+        resetChat,
         removeProject,
         updateProjectTitle,
         toggleProjectPin,
