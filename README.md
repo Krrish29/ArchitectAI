@@ -237,5 +237,4 @@ This project is licensed under the MIT License.
 ## Author
 
 **Krrish Garg**
-Final Year Computer Science Engineering Student
-AI · Full Stack Development · Agentic AI · FastAPI · React · Python
+
