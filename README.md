@@ -126,7 +126,7 @@ ArchitectAI
 │
 ├── backend
 │   ├── app
-│   │   ├── agents          # one file per AI agent
+│   │   ├── agents           # one file per AI agent
 │   │   ├── orchestrator     # Workflow class — coordinates agent execution
 │   │   ├── routes           # FastAPI route handlers
 │   │   ├── schemas          # Pydantic models for every agent's input/output
