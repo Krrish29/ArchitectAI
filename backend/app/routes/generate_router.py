@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.orchestrator.workflow import Workflow
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 workflow = Workflow()
@@ -15,6 +19,8 @@ class IdeaRequest(BaseModel):
 def generate(req: IdeaRequest):
     try:
         return workflow.execute(req.idea)
-    except Exception as e:
-        print("GENERATION ERROR:", e)
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        logger.exception("Blueprint generation failed")
+        raise HTTPException(
+            status_code=500, detail="Failed to generate blueprint. Please try again."
+        )
