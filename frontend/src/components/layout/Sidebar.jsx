@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Pin } from "lucide-react";
+import { Pin, Menu, Plus } from "lucide-react";
 
 import useBlueprint from "../../hooks/useBlueprint";
 
 import SidebarMenu from "../common/SidebarMenu";
 import DeleteProjectModal from "../modal/DeleteProjectModal";
 
-function Sidebar() {
+function Sidebar({ isOpen, onToggleSidebar }) {
   const {
     projects,
     selectedProject,
@@ -288,77 +288,148 @@ function Sidebar() {
 return (
   <>
     <aside
-      className="
+      className={
+        `
         relative
-        w-72
         bg-[#171717]
         border-r
         border-[#262626]
         flex
         flex-col
-        overflow-visible
-      "
+        overflow-hidden
+        transition-all
+        duration-200
+        ease-in-out
+      ` + (isOpen ? " w-72" : " w-20")
+      }
     >
       {/* Header */}
-      <div className="px-5 py-5 border-b border-[#262626]">
-        <h1 className="text-2xl font-semibold text-white">
-          ArchitectAI
-        </h1>
-
-        <p className="text-sm text-[#8E8EA0] mt-1">
-          AI Software Architect
-        </p>
-      </div>
-
-      {/* New Blueprint */}
-      <div className="p-4">
+      <div
+        className={
+          `
+          px-4
+          py-4
+          border-b
+          border-[#262626]
+        ` + (isOpen ? " flex items-center justify-between gap-4" : " flex flex-col items-center justify-start gap-6")
+        }
+      >
         <button
-          onClick={handleNewProject}
+          onClick={onToggleSidebar}
+          aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
+          title={isOpen ? "Close sidebar" : "Open sidebar"}
           className="
-            w-full
-            rounded-xl
-            border
-            border-[#3A3A3A]
+            h-10
+            w-10
+            rounded-2xl
             bg-[#1E1E1E]
-            px-4
-            py-3
-            text-sm
-            font-medium
-            text-white
+            flex
+            items-center
+            justify-center
+            text-[#A1A1AA]
             hover:bg-[#2A2A2A]
+            hover:text-white
+            shadow-[0_0_0_1px_rgba(255,255,255,0.08)]
             transition-all
+            duration-200
           "
         >
-          + New Chat
+          <Menu size={18} strokeWidth={2} />
         </button>
+
+        {isOpen ? (
+          <div className="flex-1 pl-3">
+            <h1 className="text-2xl font-semibold text-white">
+              ArchitectAI
+            </h1>
+            <p className="text-sm text-[#8E8EA0] mt-1">
+              AI Software Architect
+            </p>
+          </div>
+        ) : null}
+
+        {!isOpen ? (
+          <button
+            onClick={handleNewProject}
+            aria-label="New chat"
+            title="New chat"
+            className="
+              h-10
+              w-10
+              rounded-2xl
+              bg-[#1E1E1E]
+              flex
+              items-center
+              justify-center
+              text-[#A1A1AA]
+              hover:bg-[#2A2A2A]
+              hover:text-white
+              shadow-[0_0_0_1px_rgba(255,255,255,0.08)]
+              transition-all
+              duration-200
+            "
+          >
+            <Plus size={16} strokeWidth={2} />
+          </button>
+        ) : null}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 pb-4">
-        {pinnedProjects.length > 0 && (
+      {isOpen ? (
+        <div className="p-4">
+          <button
+            onClick={handleNewProject}
+            className="
+              w-full
+              rounded-2xl
+              border
+              border-[#3A3A3A]
+              bg-[#1E1E1E]
+              px-4
+              py-3
+              text-sm
+              font-medium
+              text-white
+              hover:bg-[#2A2A2A]
+              shadow-[0_10px_30px_rgba(0,0,0,0.15)]
+              transition-all
+              duration-200
+            "
+          >
+            + New Chat
+          </button>
+        </div>
+      ) : null}
+
+      <div className={isOpen ? "flex-1 overflow-y-auto px-3 pb-4" : "flex-1 overflow-y-auto px-1 pb-4"}>
+        {isOpen ? (
           <>
+            {pinnedProjects.length > 0 && (
+              <>
+                <p className="px-3 pb-2 text-xs uppercase tracking-widest text-[#8E8EA0]">
+                  Pinned
+                </p>
+
+                <div className="space-y-1 mb-6">
+                  {pinnedProjects.map(renderProject)}
+                </div>
+              </>
+            )}
+
             <p className="px-3 pb-2 text-xs uppercase tracking-widest text-[#8E8EA0]">
-              Pinned
+              Recent Projects
             </p>
 
-            <div className="space-y-1 mb-6">
-              {pinnedProjects.map(renderProject)}
-            </div>
+            {recentProjects.length === 0 ? (
+              <div className="px-3 py-3 text-sm text-[#8E8EA0]">
+                No recent projects
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {recentProjects.map(renderProject)}
+              </div>
+            )}
           </>
-        )}
-
-        <p className="px-3 pb-2 text-xs uppercase tracking-widest text-[#8E8EA0]">
-          Recent Projects
-        </p>
-
-        {recentProjects.length === 0 ? (
-          <div className="px-3 py-3 text-sm text-[#8E8EA0]">
-            No recent projects
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {recentProjects.map(renderProject)}
-          </div>
-        )}
+        ) : null}
       </div>
 
       <div className="border-t border-[#262626] px-5 py-4">

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
@@ -11,10 +12,15 @@ function Workspace({
   messages,
   timeline,
 }) {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
   return (
     <div className="h-screen flex bg-[#171717] overflow-hidden">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+      />
 
       {/* Main Workspace */}
       <main className="flex flex-col flex-1 bg-[#171717] overflow-hidden">

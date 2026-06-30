@@ -18,30 +18,15 @@ function Header() {
         shrink-0
       "
     >
-      {/* Left */}
-      <button
-        className="
-          flex
-          items-center
-          gap-2
-          text-white
-          text-[17px]
-          font-semibold
-          hover:opacity-80
-          transition-all
-          duration-150
-        "
-      >
+      <div className="flex items-center gap-2 text-white text-[17px] font-semibold">
         <span>ArchitectAI</span>
-
         <ChevronDown
           size={16}
           strokeWidth={2}
           className="text-[#A1A1AA]"
         />
-      </button>
+      </div>
 
-      {/* Right */}
       <button
         className="
           h-9
